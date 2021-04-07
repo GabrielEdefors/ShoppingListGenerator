@@ -17,11 +17,11 @@ class StoreName(Enum):
 
 class List:
 
-    def __init__(self, store: store.Store):
+    def __init__(self, store):
         self.store = store
         self.date = datetime.today().strftime('%Y-%m-%d')
 
-        self.name = 'SHOPPING LIST ' + str(self.date)
+        self.name = 'SHOPPING LIST ' + str(self.date) + ' ' + store
         self.output_path = Path.cwd().joinpath('output', self.name + '.txt')
 
         # Create categories from departments
@@ -30,7 +30,7 @@ class List:
             self.categories.append(Category(department))
 
     def __str__(self):
-        return self.name + ' - ' + self.store.name.name + ' ' + self.store.location.name
+        return self.name + ' - ' + self.store.name + ' ' + self.store.location
 
     def sort_items(self):
         self.categories.sort(key=lambda x: x.position)

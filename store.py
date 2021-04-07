@@ -4,6 +4,8 @@ import collections
 import ntpath
 import os
 import csv
+import Levenshtein
+from distutils.dir_util import copy_tree
 
 
 class Location(Enum):
@@ -23,14 +25,38 @@ class StorageUnit(Enum):
 
 class Store:
 
-    def __init__(self, name: StoreName, location: Location):
-        self.name = name
-        self.location = location
-        self.data_path = Path.cwd().joinpath('database', self.name.name + '_' + self.location.name)
+    def __init__(self, **kwargs):
 
-        # Read the departments for the specific store
+        self.name = ''
+        self.location = ''
+        self.data_path = ''
         self.departments = []
-        self.add_departments()
+
+        if not kwargs:
+            return
+
+        for key, value in kwargs.items():
+            if key == 'name':
+                self.name = value
+            elif key == 'location':
+                self.location = value
+            elif key == 'path':
+                self.data_path = value
+                full_name = ntpath.split(value)[-1]
+                self.name = full_name.split('_')[0]
+                self.location = full_name.split('_')[-1]
+
+        if not self.data_path:
+            self.initiate_repository(Path.cwd().joinpath('database', self.name + '_' + self.location))
+            self.data_path = Path.cwd().joinpath('database', self.name + '_' + self.location)
+
+    def initiate_repository(self, path):
+        os.mkdir(path)
+
+    def new_department(self, name, index, item):
+        path = self.data_path.joinpath(str(index) + '_' + name + '.csv')
+        with open(path, "w") as new_csv:
+            new_csv.write(item + '\n')
 
     def add_departments(self):
         for _, path in enumerate(os.scandir(self.data_path)):
@@ -82,7 +108,8 @@ class Store:
 
                 for i, row in enumerate(csv_reader):
                     article = row[0]
-                    if article == next_to:
+                    distance = Levenshtein.distance(next_to.lower().rstrip(), article)
+                    if distance < 2:
                         new_item_index = i + 1
                         found = True
                         break
