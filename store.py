@@ -5,15 +5,6 @@ import ntpath
 import os
 import csv
 import Levenshtein
-from distutils.dir_util import copy_tree
-
-
-class Location(Enum):
-    Hogsbo = 1
-
-
-class StoreName(Enum):
-    ICA_Maxi = 1
 
 
 class StorageUnit(Enum):
@@ -21,6 +12,11 @@ class StorageUnit(Enum):
     st = 2
     liter = 3
     gram = 4
+
+
+class Preposition(Enum):
+    before = 1
+    after = 2
 
 
 class Store:
@@ -54,7 +50,7 @@ class Store:
         os.mkdir(path)
 
     def new_department(self, name, index, item):
-        path = self.data_path.joinpath(str(index) + '_' + name + '.csv')
+        path = self.data_path.joinpath(str(index + 1) + '_' + name + '.csv')
         with open(path, "w") as new_csv:
             new_csv.write(item + '\n')
 
@@ -97,7 +93,7 @@ class Store:
 
             print('\n')
 
-    def add_item(self, new_article, next_to):
+    def add_item(self, new_article, next_to, before_after):
 
         found = False
         for _, path in enumerate(os.scandir(self.data_path)):
@@ -110,7 +106,7 @@ class Store:
                     article = row[0]
                     distance = Levenshtein.distance(next_to.lower().rstrip(), article)
                     if distance < 2:
-                        new_item_index = i + 1
+                        next_to_item_index = i
                         found = True
                         break
             if found:
@@ -128,7 +124,10 @@ class Store:
                     new_department_list.append(row[0])
 
             # Insert new item
-            new_department_list.insert(new_item_index, new_article)
+            if before_after == Preposition.after:
+                new_department_list.insert(next_to_item_index + 1, new_article)
+            if before_after == Preposition.before:
+                new_department_list.insert(next_to_item_index, new_article)
 
             # Write to csv again
             with open(path, "w") as outfile:
@@ -142,12 +141,21 @@ class Store:
 
         return sucess
 
+    def print_department_items(self, category_index):
+        department = self.departments[category_index]
+        print("Items in " + department.name + "\n")
+        for key, value in department.items.items():
+            print(key.article)
+
 class StoreItem:
 
     def __init__(self, article, unit, position):
         self.article = article
         self.unit = unit
         self.position = position
+
+    def __str__(self):
+        return self.article
 
     def __hash__(self):
         return hash(self.article)

@@ -3,8 +3,9 @@ from store import *
 import getpass
 import Levenshtein
 import os
+import getpass
 
-def add_item(input_item, store):
+def add_item(input_item, store, shopping_list):
 
     # Loop trough the items of the store and look for similar items
     found = False
@@ -31,7 +32,7 @@ if __name__ == '__main__':
         full_name = ntpath.split(path)[-1]
         name = full_name.split('_')[0]
         location = full_name.split('_')[-1]
-        print(str(i) + ": " + name + ' ' + location + '\n')
+        print(str(i) + ": " + name + ' ' + location)
 
     choose_existing_store = input("Do you want to choose any of the stores above? y/n\n")
     current_store = Store()
@@ -53,7 +54,7 @@ if __name__ == '__main__':
         # Add departments
         counter = 0
         while True:
-            last_department = input("Last department name, type done when done!\n")
+            last_department = input("Please provide a department name, type done when done!\n")
 
             if last_department == 'done':
                 break
@@ -66,7 +67,7 @@ if __name__ == '__main__':
         # Read the departments for the specific store
         current_store.add_departments()
 
-        shopping_list = List(current_store)
+    shopping_list = List(current_store)
 
     while True:
 
@@ -82,21 +83,44 @@ if __name__ == '__main__':
                 note = ''
 
         # Add item
-        found = add_item(input_item, current_store)
+        found = add_item(input_item, current_store, shopping_list)
 
         if not found:
             print(input_item + " not found!")
             add_item_bool = input("Do you want to add it?, y/n\n")
             if add_item_bool == 'y':
 
-                next_to_item = input("Which item is it next to?\n")
-                sucess = store.add_item(input_item, next_to_item.strip().lower())
+                # Prompt for where the item is placed
+                want_to_see_department = input("Do you want to see department items? y/n\n").strip().lower()
+                if want_to_see_department == 'y':
+
+                    # Print available departments
+                    shopping_list.print_section_names()
+                    department_number = int(input('Please choose one department number\n').strip())
+
+                    current_store.print_department_items(department_number)
+
+                next_to_item = input("Which item is it next to?\n").strip().lower()
+                before_or_after_result = input("1, before or 2, after?\n").strip()
+
+                # Check if before or after
+                sucess = False
+                if before_or_after_result == '2':
+                    before_after = Preposition.after
+                    sucess = current_store.add_item(input_item, next_to_item, before_after)
+                else:
+                    before_after = Preposition.before
+                    sucess = current_store.add_item(input_item, next_to_item, before_after)
+
                 while not sucess:
                     next_to_item = input("Could not find " + next_to_item + ", try another item\n")
                     sucess = store.add_item(input_item, next_to_item.strip().lower())
 
-                add_item(input_item)
+                add_item(input_item, current_store, shopping_list)
                 print(input_item + " successfully added to database and shopping list!")
+
+            else:
+                print('Ok, item not added to list!')
 
     shopping_list.sort_items()
     shopping_list.print_list()
@@ -104,9 +128,10 @@ if __name__ == '__main__':
     # Ask user if he/she wants to send an email with the shopping list
     send_email = input("Do you want to send the shopping list by email, y/n?\n").lower()
     if send_email == 'y':
-        user_email = input("Sender gmail address: ")
-        user_password = getpass.getpass(prompt='Your email password: ')
+        user_email = input("Sender gmail address: \n")
+        user_password = getpass.getpass()
         receiver_email = input("Receiver email address: ")
         shopping_list.send_email(user_email, user_password, receiver_email)
 
+    os.startfile(shopping_list.output_path)
     quit()

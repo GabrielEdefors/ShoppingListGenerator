@@ -5,6 +5,8 @@ import collections
 import store
 import smtplib
 from email.message import EmailMessage
+import Levenshtein
+import textwrap3
 
 
 class Location(Enum):
@@ -20,8 +22,9 @@ class List:
     def __init__(self, store):
         self.store = store
         self.date = datetime.today().strftime('%Y-%m-%d')
+        self.page_width = 40
 
-        self.name = 'SHOPPING LIST ' + str(self.date) + ' ' + store
+        self.name = 'SHOPPING LIST ' + str(self.date) + ' ' + store.name + ' ' + store.location
         self.output_path = Path.cwd().joinpath('output', self.name + '.txt')
 
         # Create categories from departments
@@ -37,16 +40,23 @@ class List:
         for category in self.categories:
             category.sort_items()
 
+    def print_section_names(self):
+
+        print("Categories at current store\n")
+        for i, existing_category in enumerate(self.categories):
+            print(str(i) + ': ' + str(existing_category))
+        print('\n')
+
     def print_list(self):
-        page_width = 50
         with open(self.output_path, 'w') as file:
-            self.print_section(file, page_width, str(self))
+            title_string = str(self)
+            self.print_section(file, self.page_width, textwrap3.fill(title_string, self.page_width))
             file.write('\n')
             for category in self.categories:
 
                 if category.items.items():
                     # Section header
-                    self.print_section(file, page_width, str(category.name).capitalize())
+                    self.print_section(file, self.page_width, str(category.name).capitalize())
 
                     # Items
                     for item, amount in category.items.items():
@@ -73,6 +83,7 @@ class List:
                 print('Could not log in')
 
             smtp.send_message(msg)
+            print("Sent the shopping list to " + receiver_email)
 
 
 
@@ -99,6 +110,9 @@ class Category:
         self.name = department.name
         self.position = department.position
         self.items = collections.defaultdict(float)
+
+    def __str__(self):
+        return self.name
 
     def add_item(self, item: store.StoreItem, note):
         self.items[item] = note
